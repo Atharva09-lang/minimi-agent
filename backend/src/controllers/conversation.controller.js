@@ -1,7 +1,7 @@
 
 import {
   createConversation,
-  getUserConversations,
+  getConversationsByUser,
   getConversationById,
   updateConversationTitle,
   deleteConversation
@@ -33,7 +33,7 @@ export async function createConversationController(req, res) {
 // Get all conversations
 export async function getConversationsController(req, res) {
   try {
-    const conversations = await getUserConversations(req.user.id);
+    const conversations = await getConversationsByUser(req.user.id);
 
     res.status(200).json({
       success: true,

@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import heml from "helmet";
 import pool from "./config/database.js";
-import protectedRoute from "./routes/protected.routes.js";
+import apiRoutes from "./routes/index.js";
 const app = express();
 
 app.use(cors());
@@ -37,5 +37,5 @@ app.get("/db", async(req,res)=>{
     }
 })
 
-app.use("/api/protected", protectedRoute);
+app.use("/api", apiRoutes);
 export default app;
