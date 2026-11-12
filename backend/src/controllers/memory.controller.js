@@ -1,9 +1,21 @@
+
 import {
-   createMemory,
-   getUserMemories,
-   updateMemory,
-   deactivateMemory
-} from '../repositories/memory.repository.js';
+  createMemory,
+  getUserMemories,
+  updateMemory,
+  deactivateMemory
+} from "../repositories/memory.repository.js";
+
+const ALLOWED_TYPES = [
+  "fact",
+  "preference",
+  "commitment",
+  "goal",
+  "other"
+];
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 
 // Create memory
@@ -18,14 +30,32 @@ export async function createMemoryController(req, res) {
       expiresAt
     } = req.body;
 
+    const normalizedConfidence =
+      confidence === undefined ? 1 : Number(confidence);
+
+    const normalizedImportance =
+      importance === undefined ? 3 : Number(importance);
+
     if (
       typeof content !== "string" ||
       !content.trim() ||
-      !["fact", "preference", "commitment", "goal", "other"].includes(memoryType)
+      !ALLOWED_TYPES.includes(memoryType) ||
+      !Number.isFinite(normalizedConfidence) ||
+      normalizedConfidence < 0 ||
+      normalizedConfidence > 1 ||
+      !Number.isInteger(normalizedImportance) ||
+      normalizedImportance < 1 ||
+      normalizedImportance > 5 ||
+      (sourceMessageId != null &&
+        (typeof sourceMessageId !== "string" ||
+          !UUID_REGEX.test(sourceMessageId))) ||
+      (expiresAt != null &&
+        (typeof expiresAt !== "string" ||
+          Number.isNaN(Date.parse(expiresAt))))
     ) {
       return res.status(400).json({
         success: false,
-        message: "Valid memory type and content are required"
+        message: "Invalid memory details"
       });
     }
 
@@ -33,7 +63,12 @@ export async function createMemoryController(req, res) {
       req.user.id,
       memoryType,
       content.trim(),
-      { confidence, importance, sourceMessageId, expiresAt }
+      {
+        confidence: normalizedConfidence,
+        importance: normalizedImportance,
+        sourceMessageId,
+        expiresAt
+      }
     );
 
     if (!memory) {
@@ -43,52 +78,63 @@ export async function createMemoryController(req, res) {
       });
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       memory
     });
+
   } catch (error) {
     console.error("Create memory error:", error.message);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Failed to create memory"
     });
   }
 }
 
-// Get user's memories
+
+// Get user's active memories
 export async function getMemoriesController(req, res) {
   try {
     const memories = await getUserMemories(req.user.id);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       memories
     });
+
   } catch (error) {
     console.error("Get memories error:", error.message);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Failed to fetch memories"
     });
   }
 }
 
-// Update memory
+
+// Update memory content
 export async function updateMemoryController(req, res) {
   try {
     const { content } = req.body;
+    const { id } = req.params;
 
-    if (typeof content !== "string" || !content.trim()) {
+    if (
+      !UUID_REGEX.test(id) ||
+      typeof content !== "string" ||
+      !content.trim()
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Valid memory content is required"
+        message: "Valid memory ID and content are required"
       });
     }
 
     const memory = await updateMemory(
       req.user.id,
-      req.params.id,
+      id,
       content.trim()
     );
 
@@ -99,25 +145,37 @@ export async function updateMemoryController(req, res) {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       memory
     });
+
   } catch (error) {
     console.error("Update memory error:", error.message);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Failed to update memory"
     });
   }
 }
 
+
 // Deactivate memory
 export async function deleteMemoryController(req, res) {
   try {
+    const { id } = req.params;
+
+    if (!UUID_REGEX.test(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid memory ID is required"
+      });
+    }
+
     const deleted = await deactivateMemory(
       req.user.id,
-      req.params.id
+      id
     );
 
     if (!deleted) {
@@ -127,13 +185,15 @@ export async function deleteMemoryController(req, res) {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Memory deactivated successfully"
     });
+
   } catch (error) {
     console.error("Deactivate memory error:", error.message);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       message: "Failed to deactivate memory"
     });

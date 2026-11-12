@@ -1,6 +1,7 @@
 
 import express from "express";
 import { verifyToken } from "../middleware/auth.middleware.js";
+import { validate } from "../middleware/validate.middleware.js";
 
 import {
   createMemoryController,
@@ -9,13 +10,35 @@ import {
   deleteMemoryController
 } from "../controllers/memory.controller.js";
 
+import {
+  createMemorySchema,
+  updateMemorySchema,
+  memoryParamsSchema
+} from "../validators/memory.validator.js";
+
 const router = express.Router();
 
 router.use(verifyToken);
 
-router.post("/", createMemoryController);
+router.post(
+  "/",
+  validate(createMemorySchema),
+  createMemoryController
+);
+
 router.get("/", getMemoriesController);
-router.patch("/:id", updateMemoryController);
-router.delete("/:id", deleteMemoryController);
+
+router.patch(
+  "/:id",
+  validate(memoryParamsSchema, "params"),
+  validate(updateMemorySchema),
+  updateMemoryController
+);
+
+router.delete(
+  "/:id",
+  validate(memoryParamsSchema, "params"),
+  deleteMemoryController
+);
 
 export default router;

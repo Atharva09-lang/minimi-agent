@@ -22,10 +22,11 @@ export async function verifyToken(req,res,next){
     }
 
     const token = authHeader.slice(7);
-
+    
+    
     const{payload}= await jwtVerify(token, JWKS, {
         issuer,
-        audience: "neondb"
+        audience: issuer,
     });
 
     if(typeof payload.sub !== "string" || !payload.sub){

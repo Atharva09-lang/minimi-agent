@@ -1,5 +1,17 @@
+
 {
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n backend,frontend \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\""
+  },
   "dependencies": {
     "jose": "^6.2.17"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

@@ -48,7 +48,7 @@ export async function getUserReminders(
     return rows;
 }
 
-//Get reminders that are due
+//get reminders that are due
 export async function getDueReminders(limit = 50){
     const query = `
       select *
@@ -61,6 +61,26 @@ export async function getDueReminders(limit = 50){
     const {rows} = await pool.query(query, [limit]);
     return rows;
 }
+
+
+// get due reminders for a specific user
+export async function getDueRemindersForUser(userId, limit = 20) {
+  const query = `
+    SELECT *
+    FROM reminders
+    WHERE user_id = $1
+      AND status = 'pending'
+      AND scheduled_at <= NOW()
+    ORDER BY scheduled_at ASC
+    LIMIT $2
+  `;
+
+  const { rows } = await pool.query(query, [userId, limit]);
+
+  return rows;
+}
+
+
 
 // Cancel a pending reminder
 export async function cancelReminder(userId, reminderId) {
